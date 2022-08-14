@@ -13,6 +13,8 @@ describe('rb_tree', function()
       function(a, b) return a[1] == b[1] end
     )
 
+    expect(ss:peek('left')).to.equal(nil)
+    expect(ss:peek('right')).to.equal(nil)
     expect(ss:empty()).to.equal(true)
     expect(ss:get({ 'a' })).to.equal(nil)
     ss:add({ 'a', 123 })
@@ -39,8 +41,11 @@ describe('rb_tree', function()
     expect(ss:get({ 'b' })).to.equal(nil)
     expect(ss:get({ 'c' })).to.equal({ 'c', 2 })
 
-    expect(ss:min()).to.equal({ 'c', 2 })
-    expect(ss:max()).to.equal({ 'd', 3 })
+    expect(ss:peek('left')).to.equal({ 'c', 2 })
+    expect(ss:peek('right')).to.equal({ 'd', 3 })
+
+    -- del invalid
+    ss:del({ 'b' })
   end)
 
   it('size', function()
@@ -173,7 +178,7 @@ describe('rb_tree', function()
     expect(ss:get(c)).to.be(c)
     expect(ss:get(d)).to.be(d)
 
-    expect(ss:min().v).to.be(1)
-    expect(ss:max()).to.be(b)
+    expect(ss:peek('left').v).to.be(1)
+    expect(ss:peek('right')).to.be(b)
   end)
 end)

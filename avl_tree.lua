@@ -228,12 +228,11 @@ function M:clear()
 	self.total = 0
 end
 
-function M:min()
-	return self.root:peek('left')
-end
-
-function M:max()
-	return self.root:peek('right')
+function M:peek(dir)
+	if not self.root then
+		return
+	end
+	return self.root:peek(dir)
 end
 
 function M:print()
