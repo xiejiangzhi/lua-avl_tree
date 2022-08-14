@@ -20,19 +20,18 @@ local getBalance = function(node)
 	return getHeight(node.right) - getHeight(node.left)
 end
 
-local rotate_left = function(root)
-	local pivot = root.right
-	root.right = pivot.left
-	pivot.left = root
-	setHeight(pivot)
-	setHeight(root)
-	return pivot
-end
-
-local rotate_right = function(root)
-	local pivot = root.left
-	root.left = pivot.right
-	pivot.right = root
+-- left: rotate_node(node, -1)
+-- right: rotate_node(node, 1)
+local rotate_node = function(root, dir)
+	local a, b
+	if dir == 1 then
+		a, b = 'right', 'left'
+	else
+		a, b = 'left', 'right'
+	end
+	local pivot = root[b]
+	root[b] = pivot[a]
+	pivot[a] = root
 	setHeight(pivot)
 	setHeight(root)
 	return pivot
@@ -46,14 +45,14 @@ local updateSubtree = function(root)
 	local balance = getBalance(root)
 	if balance > 1 then
 		if getBalance(root.right) < 0 then
-			root.right = rotate_right(root.right)
+			root.right = rotate_node(root.right, 1)
 		end
-		root = rotate_left(root)
+		root = rotate_node(root, -1)
 	elseif balance < -1 then
 		if getBalance(root.left) > 0 then
-			root.left = rotate_left(root.left)
+			root.left = rotate_node(root.left, -1)
 		end
-		root = rotate_right(root)
+		root = rotate_node(root, 1)
 	end
 
 	return root, root.height == h
@@ -120,6 +119,7 @@ function Node.delete(self, a, lt_fn, eq_fn)
 			v, self.right, no_change  = Node.delete(self.right, a, lt_fn, eq_fn)
 		end
 	end
+
 	if no_change then
 		return v, self, true
 	else
@@ -229,7 +229,6 @@ function M.new(lt_fn, eq_fn)
     lt_fn = lt_fn or DefaultLtFn,
     eq_fn = eq_fn or DefaultEqFn,
   }, M)
-  -- return setmetatable(t,{__index = function(t,k) return t.root[k] end})
 end
 
 function M:add(a)
@@ -304,9 +303,9 @@ end
 function M:iter(dir, cb)
 	local a, b
 	if dir == 1 or not dir then
-		a, b = 'left','right'
+		a, b = 'left', 'right'
 	elseif dir == -1 then
-		a, b = 'right','left'
+		a, b = 'right', 'left'
 	else
 		error("invalid iter dir "..tostring(dir))
 	end
