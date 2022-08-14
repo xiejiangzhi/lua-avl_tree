@@ -10,7 +10,7 @@ end
 
 local data = {}
 for i = 1, 100000 do
-  data[#data + 1] = math.floor(math.random(10000000))
+  data[#data + 1] = math.floor(math.random(1000000))
 end
 
 local ta = Tree.new()
@@ -36,6 +36,25 @@ test('get '..#data, function()
     ta:get(v)
   end
 end)
+
+local n = 0
+local qn = #data / 100
+test('query '..qn, function()
+  for i = 1, qn do
+    local v = data[i]
+    ta:query(v / 3, v / 2, 1, function() n = n + 1 end)
+  end
+end)
+print("query counter", n)
+
+n = 0
+local iter_n = #data / 1000
+test('iter '..iter_n, function()
+  for i = 1, iter_n do
+    ta:iter(1, function() n = n + 1 end)
+  end
+end)
+print("iter counter", n)
 
 test('del '..#data, function()
   for i, v in ipairs(data) do
