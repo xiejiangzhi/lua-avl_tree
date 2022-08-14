@@ -8,16 +8,16 @@ local new_node = function(a)
 	}, Node)
 end
 
-local getHeight = function(node)
-	return node and node.height or -1
-end
-
 local setHeight = function(node)
-	node.height = math.max(getHeight(node.left), getHeight(node.right)) + 1
+	local lh = node.left and node.left.height or -1
+	local rh = node.right and node.right.height or -1
+	node.height = math.max(lh, rh) + 1
 end
 
 local getBalance = function(node)
-	return getHeight(node.right) - getHeight(node.left)
+	local lh = node.left and node.left.height or -1
+	local rh = node.right and node.right.height or -1
+	return rh - lh
 end
 
 -- left: rotate_node(node, -1)
@@ -155,7 +155,7 @@ function Node:peek(side)
 	if not self[side] then
 		return self.value
 	else
-		return Node.peek(self[side],side)
+		return Node.peek(self[side], side)
 	end
 end
 
@@ -177,10 +177,17 @@ end
 -- tree traversal is in order by default (left,root,right)
 function Node.iter(node, a, b, cb)
 	if node then
-		Node.iter(node[a], a, b, cb)
-		cb(node.value)
-		Node.iter(node[b], a, b, cb)
+		if Node.iter(node[a], a, b, cb) == false then
+			return false
+		end
+		if cb(node.value) == false then
+			return false
+		end
+		if Node.iter(node[b], a, b, cb) == false then
+			return false
+		end
 	end
+	return true
 end
 
 function Node.query(node, skey, ekey, a, b, cb, cmp_fn)
@@ -274,7 +281,13 @@ end
 -- side: left or right
 function M:pop(side)
   assert(side,'No side specified!')
+	if not self.root then
+		return
+	end
   a, self.root = self.root:pop(side)
+	if a then
+		self.total = self.total - 1
+	end
   return a
 end
 

@@ -70,6 +70,32 @@ describe('rb_tree', function()
     end
   end)
 
+  it('pop', function()
+    local ss = lib.new()
+    local ks = { 1, 2, 3, 19, 18, 17, 7, 6, 4, 5, 14, 15, 16, 13 }
+    for i, v in ipairs(ks)  do
+      ss:add(v)
+    end
+
+    local t = #ks
+    table.sort(ks)
+    for i, k in ipairs(ks) do
+      expect(ss:pop('left')).to.be(k)
+      expect(ss:size()).to.be(t - i)
+    end
+
+    for i, v in ipairs(ks)  do
+      ss:add(v)
+    end
+
+    table.sort(ks, function(a, b) return a > b end)
+    for i, k in ipairs(ks) do
+      expect(ss:pop('right')).to.be(k)
+      expect(ss:size()).to.be(t - i)
+    end
+  end)
+
+
   it('repeat add', function()
     local ss = lib.new()
     expect(ss:add(1)).to.be(1)
@@ -104,6 +130,26 @@ describe('rb_tree', function()
     r = {}
     ss:iter(-1, function(v) r[#r + 1] = v end)
     expect(r).to.equal({ 4, 3.5, 3, 2.5, 2, 1, 0 })
+
+    -- top n
+    r = {}
+    ss:iter(-1, function(v)
+      r[#r + 1] = v
+      if #r >= 3 then
+        return false
+      end
+    end)
+    expect(r).to.equal({ 4, 3.5, 3 })
+
+    -- top n
+    r = {}
+    ss:iter(1, function(v)
+      r[#r + 1] = v
+      if #r >= 4 then
+        return false
+      end
+    end)
+    expect(r).to.equal({ 0, 1, 2, 2.5 })
   end)
 
   it('query', function()
