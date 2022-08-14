@@ -60,21 +60,22 @@ end
 
 -- Insert given element, return it if added
 -- return node, added, should_stop_check
-function Node.add(self, a, lt_fn, eq_fn)
+function Node.add(self, a, cmp_fn)
 	if not self then
 		return true, new_node(a)
 	end
 
-	if eq_fn(a, self.value) then
+	local cmp_v = cmp_fn(a, self.value)
+	if cmp_v == 0 then
 		self.value = a
 		return false, self, true
 	end
 
 	local r, no_change
-	if lt_fn(a, self.value) then
-		r, self.left, no_change  = Node.add(self.left, a, lt_fn, eq_fn)
+	if cmp_v < 0 then
+		r, self.left, no_change  = Node.add(self.left, a, cmp_fn)
 	else
-		r, self.right, no_change  = Node.add(self.right, a, lt_fn, eq_fn)
+		r, self.right, no_change  = Node.add(self.right, a, cmp_fn)
 	end
 
 	if no_change then
@@ -86,14 +87,15 @@ end
 
 -- return value, new_node,
 -- return nil
-function Node.delete(self, a, lt_fn, eq_fn)
+function Node.delete(self, a, cmp_fn)
 	if not self then
 		return nil, nil, true
 	end
 
 	local v = self.value
 	local no_change
-	if eq_fn(a, v) then
+	local cmp_v = cmp_fn(a, v)
+	if cmp_v == 0 then
 		if not self.left then
 			return v, self.right
 		elseif not self.right then
@@ -112,12 +114,10 @@ function Node.delete(self, a, lt_fn, eq_fn)
 
 			return v, updateSubtree(self)
 		end
+	elseif cmp_v < 0 then
+		v, self.left, no_change = Node.delete(self.left, a, cmp_fn)
 	else
-		if lt_fn(a, v) then
-			v, self.left, no_change = Node.delete(self.left, a, lt_fn, eq_fn)
-		else
-			v, self.right, no_change  = Node.delete(self.right, a, lt_fn, eq_fn)
-		end
+		v, self.right, no_change  = Node.delete(self.right, a, cmp_fn)
 	end
 
 	if no_change then
@@ -160,15 +160,16 @@ function Node:peek(side)
 end
 
 -- Find given element and return it
-function Node.get(self, a, lt_fn, eq_fn)
+function Node.get(self, a, cmp_fn)
 	if self then
 		local v = self.value
-		if eq_fn(a, v) then
+		local cmp_v = cmp_fn(a, v)
+		if cmp_v == 0 then
 			return v
-		elseif lt_fn(a, v) then
-			return Node.get(self.left, a, lt_fn, eq_fn)
+		elseif cmp_v < 0 then
+			return Node.get(self.left, a, cmp_fn)
 		else
-			return Node.get(self.right, a, lt_fn, eq_fn)
+			return Node.get(self.right, a, cmp_fn)
 		end
 	end
 end
@@ -182,52 +183,59 @@ function Node.iter(node, a, b, cb)
 	end
 end
 
-function Node.query(node, skey, ekey, a, b, cb, lt_fn, eq_fn)
+function Node.query(node, skey, ekey, a, b, cb, cmp_fn)
 	if node then
 		local v = node.value
-		if eq_fn(v, skey) then
-			Node.query(node[a], skey, ekey, a, b, cb, lt_fn, eq_fn)
+		local cmp_sv = cmp_fn(v, skey)
+		if cmp_sv == 0 then
+			Node.query(node[a], skey, ekey, a, b, cb, cmp_fn)
 			cb(v)
-			Node.query(node[b], skey, ekey, a, b, cb, lt_fn, eq_fn)
-		elseif lt_fn(v, skey) then
-			Node.query(node[b], skey, ekey, a, b, cb, lt_fn, eq_fn)
+			Node.query(node[b], skey, ekey, a, b, cb, cmp_fn)
+		elseif cmp_sv < 0 then
+			Node.query(node[b], skey, ekey, a, b, cb, cmp_fn)
 		else
-			if lt_fn(v, ekey) or eq_fn(v, ekey) then
-				Node.query(node[a], skey, ekey, a, b, cb, lt_fn, eq_fn)
+			local cmp_ev = cmp_fn(v, ekey)
+			if cmp_ev <= 0 then
+				Node.query(node[a], skey, ekey, a, b, cb, cmp_fn)
 				cb(v)
-				Node.query(node[b], skey, ekey, a, b, cb, lt_fn, eq_fn)
+				Node.query(node[b], skey, ekey, a, b, cb, cmp_fn)
 			else
-				Node.query(node[a], skey, ekey, a, b, cb, lt_fn, eq_fn)
+				Node.query(node[a], skey, ekey, a, b, cb, cmp_fn)
 			end
 		end
 	end
 end
 
--- http://stackoverflow.com/questions/1733311/pretty-print-a-tree
 Node.print = function(self, to_str_fn, depth)
 	depth = depth or 1
 	if self then
-		Node.print(self.right, to_str_fn, depth+1)
+		Node.print(self.right, to_str_fn, depth + 1)
 		local indent = string.rep("  ", depth)
 		print(string.format("%s%s", indent, to_str_fn(self.value)))
 		Node.print(self.left, to_str_fn, depth+1)
 	end
 end
 
-------------------------
+----------------------------------------
 
 local M = {} -- proxy table for tree
 M.__index = M
 
-local DefaultLtFn = function(a, b) return a < b end
-local DefaultEqFn = function(a, b) return a == b end
+local DefaultCmpFn = function(a, b)
+	if a < b then
+		return -1
+	elseif a > b then
+		return 1
+	else
+		return 0
+	end
+end
 
-function M.new(lt_fn, eq_fn)
+function M.new(cmp_fn)
   return setmetatable({
     root = nil,
 		total = 0,
-    lt_fn = lt_fn or DefaultLtFn,
-    eq_fn = eq_fn or DefaultEqFn,
+    cmp_fn = cmp_fn or DefaultCmpFn,
   }, M)
 end
 
@@ -236,7 +244,7 @@ function M:add(a)
 		return
 	end
 	local added
-  added, self.root = Node.add(self.root, a, self.lt_fn, self.eq_fn)
+  added, self.root = Node.add(self.root, a, self.cmp_fn)
 	if added then
 		self.total = self.total + 1
   	return a
@@ -247,7 +255,7 @@ function M:get(a)
 	if not self.root then
 		return
 	end
-	return self.root:get(a, self.lt_fn, self.eq_fn)
+	return self.root:get(a, self.cmp_fn)
 end
 
 function M:del(a)
@@ -256,7 +264,7 @@ function M:del(a)
 	end
 
 	local v
-  v, self.root = self.root:delete(a, self.lt_fn, self.eq_fn)
+  v, self.root = self.root:delete(a, self.cmp_fn)
 	if v then
 		self.total = self.total - 1
 		return v
@@ -323,7 +331,7 @@ function M:query(skey, ekey, dir, cb)
 		error("invalid iter dir "..tostring(dir))
 	end
 
-	self.root:query(skey, ekey, a, b, cb, self.lt_fn, self.eq_fn)
+	self.root:query(skey, ekey, a, b, cb, self.cmp_fn)
 end
 
 return M

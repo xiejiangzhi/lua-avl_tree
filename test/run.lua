@@ -9,8 +9,15 @@ describe('rb_tree', function()
 
   it('add/get/del', function()
     local ss = lib.new(
-      function(a, b) return a[1] < b[1] end,
-      function(a, b) return a[1] == b[1] end
+      function(a, b)
+        if a[1] < b[1] then
+          return -1
+        elseif a[1] > b[1] then
+          return 1
+        else
+          return 0
+        end
+      end
     )
 
     expect(ss:peek('left')).to.equal(nil)
@@ -154,13 +161,21 @@ describe('rb_tree', function()
   it('same key', function()
     local ss = lib.new(
       function(a, b)
-        if a.v < b.v then
-          return true
-        elseif a.v == b.v then
-          return a.k < b.k
+        if a == b then
+          return 0
         end
-      end,
-      function(a, b) return a == b end
+        if a.v < b.v then
+          return -1
+        elseif a.v == b.v then
+          if a.k < b.k then
+            return -1
+          else
+            return 1
+          end
+        else
+          return 1
+        end
+      end
     )
 
     local a = { v = 1, k = 'a' }
