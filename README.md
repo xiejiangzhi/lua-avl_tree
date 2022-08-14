@@ -1,4 +1,10 @@
 
+AVL-Tree with Simple optimization.
+
+Support lua version: `luajit`, `lua5.1`-`lua5.4`
+
+**Example**
+
 ```
 local Tree = require 'avl_tree'
 
