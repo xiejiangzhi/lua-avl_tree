@@ -39,7 +39,9 @@ local rotate_right = function(root)
 end
 
 -- perform leaf check,height check,& rotation
+-- return new_root, no_change
 local updateSubtree = function(root)
+	local h = root.height
 	setHeight(root)
 	local balance = getBalance(root)
 	if balance > 1 then
@@ -54,43 +56,49 @@ local updateSubtree = function(root)
 		root = rotate_right(root)
 	end
 
-	return root
+	return root, root.height == h
 end
 
 -- Insert given element, return it if added
--- return node, added
+-- return node, added, should_stop_check
 function Node.add(self, a, lt_fn, eq_fn)
 	if not self then
-		return new_node(a), true
+		return true, new_node(a)
 	end
 
 	if eq_fn(a, self.value) then
 		self.value = a
-		return self, false
+		return false, self, true
 	end
 
-	local r
+	local r, no_change
 	if lt_fn(a, self.value) then
-		self.left, r  = Node.add(self.left, a, lt_fn, eq_fn)
+		r, self.left, no_change  = Node.add(self.left, a, lt_fn, eq_fn)
 	else
-		self.right, r  = Node.add(self.right, a, lt_fn, eq_fn)
+		r, self.right, no_change  = Node.add(self.right, a, lt_fn, eq_fn)
 	end
-	return updateSubtree(self), r
+
+	if no_change then
+		return r, self, true
+	else
+		return r, updateSubtree(self)
+	end
 end
 
--- return new_node, value
+-- return value, new_node,
 -- return nil
 function Node.delete(self, a, lt_fn, eq_fn)
 	if not self then
-		return
+		return nil, nil, true
 	end
 
 	local v = self.value
+	local no_change
 	if eq_fn(a, v) then
 		if not self.left then
-			return self.right, v
+			return v, self.right
 		elseif not self.right then
-			return self.left, v
+			return v, self.left
 		else
 			local sNode = self.right
 
@@ -103,16 +111,20 @@ function Node.delete(self, a, lt_fn, eq_fn)
 				self.value = sNode.value
 			end
 
-			return updateSubtree(self), v
+			return v, updateSubtree(self)
 		end
 	else
 		if lt_fn(a, v) then
-			self.left, v = Node.delete(self.left, a, lt_fn, eq_fn)
+			v, self.left, no_change = Node.delete(self.left, a, lt_fn, eq_fn)
 		else
-			self.right, v  = Node.delete(self.right, a, lt_fn, eq_fn)
+			v, self.right, no_change  = Node.delete(self.right, a, lt_fn, eq_fn)
 		end
 	end
-	return updateSubtree(self), v
+	if no_change then
+		return v, self, true
+	else
+		return v, updateSubtree(self)
+	end
 end
 
 -- return new_node, deleted_node
@@ -136,7 +148,7 @@ function Node:pop(side)
 	else
 		v,self[side] = Node.pop(self[side],side)
 	end
-	return v,updateSubtree(self)
+	return v, updateSubtree(self)
 end
 
 function Node:peek(side)
@@ -225,7 +237,7 @@ function M:add(a)
 		return
 	end
 	local added
-  self.root, added = Node.add(self.root, a, self.lt_fn, self.eq_fn)
+  added, self.root = Node.add(self.root, a, self.lt_fn, self.eq_fn)
 	if added then
 		self.total = self.total + 1
   	return a
@@ -244,10 +256,11 @@ function M:del(a)
 		return
 	end
 
-  self.root, a = self.root:delete(a, self.lt_fn, self.eq_fn)
-	if a then
+	local v
+  v, self.root = self.root:delete(a, self.lt_fn, self.eq_fn)
+	if v then
 		self.total = self.total - 1
-		return a
+		return v
 	end
 end
 
