@@ -13,7 +13,7 @@ local getHeight = function(node)
 end
 
 local setHeight = function(node)
-	node.height = math.max(getHeight(node.left),getHeight(node.right))+1
+	node.height = math.max(getHeight(node.left), getHeight(node.right)) + 1
 end
 
 local getBalance = function(node)
@@ -62,20 +62,20 @@ end
 function Node.add(self, a, lt_fn, eq_fn)
 	if not self then
 		return new_node(a), true
-	else
-		if eq_fn(a, self.value) then
-			self.value = a
-			return self, false
-		end
-
-		local r
-		if lt_fn(a, self.value) then
-			self.left, r   = Node.add(self.left, a, lt_fn, eq_fn)
-		else
-			self.right, r  = Node.add(self.right, a, lt_fn, eq_fn)
-		end
-		return updateSubtree(self), r
 	end
+
+	if eq_fn(a, self.value) then
+		self.value = a
+		return self, false
+	end
+
+	local r
+	if lt_fn(a, self.value) then
+		self.left, r  = Node.add(self.left, a, lt_fn, eq_fn)
+	else
+		self.right, r  = Node.add(self.right, a, lt_fn, eq_fn)
+	end
+	return updateSubtree(self), r
 end
 
 -- return new_node, value
@@ -94,7 +94,6 @@ function Node.delete(self, a, lt_fn, eq_fn)
 		else
 			local sNode = self.right
 
-			local node
 			if sNode.left then
 				local min_node
 				sNode.left, min_node = Node.delete_min_node(sNode.left)
