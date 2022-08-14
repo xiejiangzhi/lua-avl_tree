@@ -29,7 +29,7 @@ describe('rb_tree', function()
 
     expect(ss:size()).to.equal(4)
 
-    ss:del({ 'a' })
+    expect(ss:del({ 'a' })).to.equal({ 'a', 123 })
     expect(ss:size()).to.equal(3)
     expect(ss:get({ 'a' })).to.equal(nil)
     expect(ss:empty()).to.equal(false)
@@ -37,7 +37,7 @@ describe('rb_tree', function()
     ss:add({ 'b', 111 })
     expect(ss:get({ 'b' })).to.equal({ 'b', 111 })
     expect(ss:get({ 'c' })).to.equal({ 'c', 2 })
-    ss:del({ 'b' })
+    expect(ss:del({ 'b' })).to.equal({ 'b', 111 })
     expect(ss:get({ 'b' })).to.equal(nil)
     expect(ss:get({ 'c' })).to.equal({ 'c', 2 })
 
@@ -45,50 +45,38 @@ describe('rb_tree', function()
     expect(ss:peek('right')).to.equal({ 'd', 3 })
 
     -- del invalid
-    ss:del({ 'b' })
+    expect(ss:del({ 'b' })).to.equal(nil)
   end)
 
   it('size', function()
     local ss = lib.new()
-    ss:add(1)
-    expect(ss:size()).to.be(1)
-    ss:add(2)
-    expect(ss:size()).to.be(2)
-    ss:add(3)
-    expect(ss:size()).to.be(3)
-    ss:add(4)
-    expect(ss:size()).to.be(4)
-
-    ss:add(5)
-    expect(ss:size()).to.be(5)
-    ss:add(6)
-    expect(ss:size()).to.be(6)
-    ss:add(7)
-    expect(ss:size()).to.be(7)
-
-    ss:add(19)
-    expect(ss:size()).to.be(8)
-    ss:add(18)
-    expect(ss:size()).to.be(9)
-    ss:add(17)
-    expect(ss:size()).to.be(10)
-    ss:add(16)
-    expect(ss:size()).to.be(11)
-    ss:add(15)
-    expect(ss:size()).to.be(12)
-    ss:add(14)
-    expect(ss:size()).to.be(13)
-    ss:add(13)
-    expect(ss:size()).to.be(14)
-
-    local t = 14
     local ks = { 1, 2, 3, 19, 18, 17, 7, 6, 4, 5, 14, 15, 16, 13 }
-    for i, k in ipairs(ks) do
-      ss:del(k)
-      -- ss:print()
-      expect(ss:size()).to.be(t - i)
+    for i, v in ipairs(ks)  do
+      ss:add(v)
+      expect(ss:size()).to.be(i)
     end
 
+    local t = #ks
+    for i, k in ipairs(ks) do
+      ss:del(k)
+      expect(ss:size()).to.be(t - i)
+    end
+  end)
+
+  it('repeat add', function()
+    local ss = lib.new()
+    expect(ss:add(1)).to.be(1)
+    expect(ss:add(1)).to.be(nil)
+    expect(ss:add(2)).to.be(2)
+    expect(ss:add(2)).to.be(nil)
+    expect(ss:add(2)).to.be(nil)
+    expect(ss:add(1)).to.be(nil)
+
+    expect(ss:del(1)).to.be(1)
+    expect(ss:del(1)).to.be(nil)
+    expect(ss:del(2)).to.be(2)
+    expect(ss:del(2)).to.be(nil)
+    expect(ss:del(2)).to.be(nil)
   end)
 
   it('iter', function()
@@ -149,12 +137,26 @@ describe('rb_tree', function()
     expect(ss:get(2)).to.be(2)
   end)
 
+  it('large data test', function()
+    local ss = lib.new()
+    local n = 10000
+    for i = 1, n do
+      expect(ss:add(i)).to.be(i)
+    end
+    expect(ss:size()).to.be(n)
+    for i = 1, n do
+      expect(ss:del(i)).to.be(i)
+      expect(ss:size()).to.be(n - i)
+    end
+    expect(ss:empty()).to.be(true)
+  end)
+
   it('same key', function()
     local ss = lib.new(
       function(a, b)
         if a.v < b.v then
           return true
-        elseif a == b then
+        elseif a.v == b.v then
           return a.k < b.k
         end
       end,
@@ -165,18 +167,25 @@ describe('rb_tree', function()
     local b = { v = 3, k = 'b' }
     local c = { v = 2, k = 'c' }
     local d = { v = 1, k = 'd' }
+    local e = { v = 1, k = 'e' }
+    local f = { v = 1, k = 'f' }
 
     expect(ss:size()).to.be(0)
     ss:add(a)
     ss:add(b)
     ss:add(c)
     ss:add(d)
-    expect(ss:size()).to.be(4)
+    ss:add(e)
+    ss:add(f)
+    expect(ss:size()).to.be(6)
+    -- ss:print(function(obj) return string.format('%i-%s', obj.v, obj.k) end)
 
     expect(ss:get(a)).to.be(a)
     expect(ss:get(b)).to.be(b)
     expect(ss:get(c)).to.be(c)
     expect(ss:get(d)).to.be(d)
+    expect(ss:get(e)).to.be(e)
+    expect(ss:get(f)).to.be(f)
 
     expect(ss:peek('left').v).to.be(1)
     expect(ss:peek('right')).to.be(b)

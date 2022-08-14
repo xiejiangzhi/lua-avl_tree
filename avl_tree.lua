@@ -1,7 +1,7 @@
 local Node   = {}
 Node.__index = Node
 
-local newLeaf = function(a)
+local new_node = function(a)
 	return setmetatable({
     value   = a,
     height  = 0,
@@ -17,81 +17,115 @@ local setHeight = function(node)
 end
 
 local getBalance = function(node)
-	return getHeight(node.right)-getHeight(node.left)
+	return getHeight(node.right) - getHeight(node.left)
 end
 
--- http://en.wikipedia.org/wiki/Tree_rotation
-local rotateNode = function(root,rotation_side,opposite_side)
-	local pivot           = root[opposite_side]
-	root[opposite_side]   = pivot[rotation_side]
-	pivot[rotation_side]  = root
-	root,pivot            = pivot,root
-	setHeight(pivot);setHeight(root)
-	return root
+local rotate_left = function(root)
+	local pivot = root.right
+	root.right = pivot.left
+	pivot.left = root
+	setHeight(pivot)
+	setHeight(root)
+	return pivot
 end
+
+local rotate_right = function(root)
+	local pivot = root.left
+	root.left = pivot.right
+	pivot.right = root
+	setHeight(pivot)
+	setHeight(root)
+	return pivot
+end
+
 -- perform leaf check,height check,& rotation
 local updateSubtree = function(root)
 	setHeight(root)
-	local rotation_side,opposite_side,pivot,rotate_pivot
 	local balance = getBalance(root)
 	if balance > 1 then
-		pivot = root.right
-		if getBalance(pivot) < 0 then rotate_pivot = true end
-		rotation_side,opposite_side = 'left','right'
-	elseif balance < -1 then
-		pivot = root.left
-		if getBalance(pivot) > 0 then rotate_pivot = true end
-		rotation_side,opposite_side = 'right','left'
-	end
-	if rotation_side then
-		if rotate_pivot then
-			root[opposite_side] = rotateNode(pivot,opposite_side,rotation_side)
+		if getBalance(root.right) < 0 then
+			root.right = rotate_right(root.right)
 		end
-		root = rotateNode(root,rotation_side,opposite_side)
+		root = rotate_left(root)
+	elseif balance < -1 then
+		if getBalance(root.left) > 0 then
+			root.left = rotate_left(root.left)
+		end
+		root = rotate_right(root)
 	end
+
 	return root
 end
 
-function Node:add(a, lt_fn, eq_fn) -- Insert given element, return it if successful
-	if not self or not self.value then
-		return a, newLeaf(a)
+-- Insert given element, return it if added
+-- return node, added
+function Node.add(self, a, lt_fn, eq_fn)
+	if not self then
+		return new_node(a), true
 	else
-		if lt_fn(a, self.value) then
-			a, self.left   = Node.add(self.left, a, lt_fn, eq_fn)
-		elseif eq_fn(a, self.value) then
+		if eq_fn(a, self.value) then
 			self.value = a
-			a = nil
-		else
-			a, self.right  = Node.add(self.right, a, lt_fn, eq_fn)
+			return self, false
 		end
-		return a, updateSubtree(self)
+
+		local r
+		if lt_fn(a, self.value) then
+			self.left, r   = Node.add(self.left, a, lt_fn, eq_fn)
+		else
+			self.right, r  = Node.add(self.right, a, lt_fn, eq_fn)
+		end
+		return updateSubtree(self), r
 	end
 end
 
 -- return new_node, value
+-- return nil
 function Node.delete(self, a, lt_fn, eq_fn)
-	if self then
-		local v = self.value
-		if eq_fn(a, v) then
-			if not self.left or not self.right then
-				return self.left or self.right, a
-			else
-				local sNode = self.right
-				while sNode.left do
-					sNode	    = sNode.left
-				end
-				self        = self:delete(sNode.value, lt_fn, eq_fn)
-				self.value  = sNode.value
-				return self, a
-			end
+	if not self then
+		return
+	end
+
+	local v = self.value
+	if eq_fn(a, v) then
+		if not self.left then
+			return self.right, v
+		elseif not self.right then
+			return self.left, v
 		else
-			if lt_fn(a, v) then
-				self.left, a = Node.delete(self.left, a, lt_fn, eq_fn)
+			local sNode = self.right
+
+			local node
+			if sNode.left then
+				local min_node
+				sNode.left, min_node = Node.delete_min_node(sNode.left)
+				self.value = min_node.value
 			else
-				self.right, a  = Node.delete(self.right, a, lt_fn, eq_fn)
+				self.right = sNode.right
+				self.value = sNode.value
 			end
+
+			return updateSubtree(self), v
 		end
-		return updateSubtree(self), a
+	else
+		if lt_fn(a, v) then
+			self.left, v = Node.delete(self.left, a, lt_fn, eq_fn)
+		else
+			self.right, v  = Node.delete(self.right, a, lt_fn, eq_fn)
+		end
+	end
+	return updateSubtree(self), v
+end
+
+-- return new_node, deleted_node
+function Node.delete_min_node(node)
+	if node.left then
+		local v
+		node.left, v = Node.delete_min_node(node.left)
+		return updateSubtree(node), v
+	elseif node.right then
+		return node.right, node
+	else
+		return nil, node
 	end
 end
 
@@ -140,11 +174,11 @@ end
 function Node.query(node, skey, ekey, a, b, cb, lt_fn, eq_fn)
 	if node then
 		local v = node.value
-		if lt_fn(v, skey) then
-			Node.query(node[b], skey, ekey, a, b, cb, lt_fn, eq_fn)
-		elseif eq_fn(v, skey) then
+		if eq_fn(v, skey) then
 			Node.query(node[a], skey, ekey, a, b, cb, lt_fn, eq_fn)
 			cb(v)
+			Node.query(node[b], skey, ekey, a, b, cb, lt_fn, eq_fn)
+		elseif lt_fn(v, skey) then
 			Node.query(node[b], skey, ekey, a, b, cb, lt_fn, eq_fn)
 		else
 			if lt_fn(v, ekey) or eq_fn(v, ekey) then
@@ -159,12 +193,13 @@ function Node.query(node, skey, ekey, a, b, cb, lt_fn, eq_fn)
 end
 
 -- http://stackoverflow.com/questions/1733311/pretty-print-a-tree
-Node.print = function(self,depth)
+Node.print = function(self, to_str_fn, depth)
 	depth = depth or 1
 	if self then
-		Node.print(self.right,depth+1)
-		print(string.format("%s%d",string.rep("  ", depth), self.value))
-		Node.print(self.left,depth+1)
+		Node.print(self.right, to_str_fn, depth+1)
+		local indent = string.rep("  ", depth)
+		print(string.format("%s%s", indent, to_str_fn(self.value)))
+		Node.print(self.left, to_str_fn, depth+1)
 	end
 end
 
@@ -187,11 +222,15 @@ function M.new(lt_fn, eq_fn)
 end
 
 function M:add(a)
-  a, self.root = Node.add(self.root, a, self.lt_fn, self.eq_fn)
-	if a then
-		self.total = self.total + 1
+	if not a then
+		return
 	end
-  return a
+	local added
+  self.root, added = Node.add(self.root, a, self.lt_fn, self.eq_fn)
+	if added then
+		self.total = self.total + 1
+  	return a
+	end
 end
 
 function M:get(a)
@@ -202,9 +241,14 @@ function M:get(a)
 end
 
 function M:del(a)
+	if not self.root then
+		return
+	end
+
   self.root, a = self.root:delete(a, self.lt_fn, self.eq_fn)
 	if a then
 		self.total = self.total - 1
+		return a
 	end
 end
 
@@ -235,8 +279,13 @@ function M:peek(dir)
 	return self.root:peek(dir)
 end
 
-function M:print()
-	self.root:print()
+function M:print(to_str_fn)
+	if not self.root then
+		return
+	end
+
+	print('------')
+	self.root:print(to_str_fn or tostring)
 end
 
 -- dir 1 or -1
