@@ -102,7 +102,7 @@ function M:print(to_str_fn)
 		return
 	end
 
-	print('------')
+	print('---------')
 	M._print(self.root, to_str_fn or tostring)
 end
 
@@ -123,16 +123,16 @@ end
 -- skey: start key, if nil, start from first
 -- ekey: end key, if nil, end to last
 function M:query(skey, ekey, dir, cb)
-	local a, b
+	local before_side, after_side
 	if dir == 1 or not dir then
-		a, b = 'left','right'
+		before_side, after_side = 'left', 'right'
 	elseif dir == -1 then
-		a, b = 'right','left'
+		before_side, after_side = 'right', 'left'
 	else
 		error("invalid iter dir "..tostring(dir))
 	end
 
-	M._query(self.root, skey, ekey, a, b, cb, self.cmp_fn)
+	M._query(self.root, skey, ekey, before_side, after_side, cb, self.cmp_fn)
 end
 
 function M.print_stat(tree)
@@ -332,26 +332,28 @@ function M._iter(node, a, b, cb)
 	return true
 end
 
-function M._query(node, skey, ekey, a, b, cb, cmp_fn)
+function M._query(node, skey, ekey, before_side, after_side, cb, cmp_fn)
 	if node then
 		local v = node.value
 		local cmp_sv = skey and cmp_fn(v, skey) or 1
 		if cmp_sv == 0 then
+			M._query(node[before_side], skey, ekey, before_side, after_side, cb, cmp_fn)
 			cb(v)
-			M._query(node[b], skey, ekey, a, b, cb, cmp_fn)
+			M._query(node[after_side], skey, ekey, before_side, after_side, cb, cmp_fn)
 		elseif cmp_sv < 0 then
-			M._query(node[b], skey, ekey, a, b, cb, cmp_fn)
+			M._query(node.right, skey, ekey, before_side, after_side, cb, cmp_fn)
 		else
 			local cmp_ev = ekey and cmp_fn(v, ekey) or -1
 			if cmp_ev < 0 then
-				M._query(node[a], skey, ekey, a, b, cb, cmp_fn)
+				M._query(node[before_side], skey, ekey, before_side, after_side, cb, cmp_fn)
 				cb(v)
-				M._query(node[b], skey, ekey, a, b, cb, cmp_fn)
+				M._query(node[after_side], skey, ekey, before_side, after_side, cb, cmp_fn)
 			elseif cmp_ev == 0 then
-				M._query(node[a], skey, ekey, a, b, cb, cmp_fn)
+				M._query(node[before_side], skey, ekey, before_side, after_side, cb, cmp_fn)
 				cb(v)
+				M._query(node[after_side], skey, ekey, before_side, after_side, cb, cmp_fn)
 			else
-				M._query(node[a], skey, ekey, a, b, cb, cmp_fn)
+				M._query(node.left, skey, ekey, before_side, after_side, cb, cmp_fn)
 			end
 		end
 	end

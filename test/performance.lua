@@ -41,7 +41,7 @@ for _, size in ipairs(sizes) do
   end)
 
   local n = 0
-  local qn = 1000
+  local qn = 500
   test('query '..qn, function()
     for i = 1, qn do
       local v = data[i]
@@ -51,7 +51,7 @@ for _, size in ipairs(sizes) do
   print("query counter", n)
 
   n = 0
-  local iter_n = 200
+  local iter_n = 100
   test('iter '..iter_n, function()
     for i = 1, iter_n do
       ta:iter(1, function() n = n + 1 end)

@@ -4,6 +4,11 @@ local describe, it, expect = lust.describe, lust.it, lust.expect
 -- local before_each, after_each = lust.before, lust.after
 -- local spy = lust.spy
 
+lust.case_filter = function(name)
+  -- return name:match("#focus")
+  return true
+end
+
 describe('rb_tree', function()
   local lib = require 'avl_tree'
 
@@ -175,11 +180,11 @@ describe('rb_tree', function()
 
     r = {}
     ss:query(1.1, 3.9, -1, function(v) r[#r + 1] = v end)
-    expect(r).to.equal({ 3, 2.5, 2 })
+    expect(r).to.equal({ 3.5, 3, 2.5, 2 })
 
     r = {}
     ss:query(nil, 3.9, -1, function(v) r[#r + 1] = v end)
-    expect(r).to.equal({ 3, 2.5, 2, 1, 0 })
+    expect(r).to.equal({ 3.5, 3, 2.5, 2, 1, 0 })
 
     r = {}
     ss:query(1.5, nil, -1, function(v) r[#r + 1] = v end)
@@ -193,6 +198,30 @@ describe('rb_tree', function()
     ss:query(nil, -9, 1, function(v) r[#r + 1] = v end)
     expect(r).to.equal({ })
   end)
+
+  it('query more', function()
+    local ss = lib.new()
+    for i = 1, 30 do
+      ss:add(i)
+    end
+
+    local r = {}
+    ss:query(5, 15, 1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal({ 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 })
+
+    r = {}
+    ss:query(5, 15, -1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal({ 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5 })
+
+    r = {}
+    ss:query(10, 25, 1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal({ 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 })
+
+    r = {}
+    ss:query(10, 25, -1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal({  25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10 })
+  end)
+
 
   it('clear', function()
     local ss = lib.new()

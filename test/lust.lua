@@ -23,6 +23,8 @@ local err_cb = function(err)
 end
 local Inspect = require 'test.inspect'
 
+lust.case_filter = nil
+
 function lust.describe(name, fn)
   print_info(indent() .. name)
   lust.level = lust.level + 1
@@ -33,6 +35,10 @@ function lust.describe(name, fn)
 end
 
 function lust.it(name, fn)
+  if lust.case_filter and not lust.case_filter(name) then
+    return
+  end
+
   for level = 1, lust.level do
     if lust.befores[level] then
       for i = 1, #lust.befores[level] do
