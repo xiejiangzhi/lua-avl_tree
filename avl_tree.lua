@@ -157,6 +157,7 @@ local setHeight = function(node)
 	local lh = node.left and node.left.height or -1
 	local rh = node.right and node.right.height or -1
 	node.height = math.max(lh, rh) + 1
+	return rh - lh
 end
 
 local getBalance = function(node)
@@ -165,41 +166,35 @@ local getBalance = function(node)
 	return rh - lh
 end
 
--- left: rotate_node(node, -1)
--- right: rotate_node(node, 1)
-local rotate_node = function(root, dir)
+-- left rotate: rotate_node(node, 'right', 'left')
+-- right rotate: rotate_node(node, 'left', 'right')
+local rotateNode = function(root, pivot_side, opt_side)
 	Stat.rotate = Stat.rotate + 1
-	local a, b
-	if dir == 1 then
-		a, b = 'right', 'left'
-	else
-		a, b = 'left', 'right'
-	end
-	local pivot = root[b]
-	root[b] = pivot[a]
-	pivot[a] = root
+	local pivot = root[pivot_side]
+	root[pivot_side] = pivot[opt_side]
+	pivot[opt_side] = root
 	setHeight(root)
 	setHeight(pivot)
 	return pivot
 end
 
 -- perform leaf check, height check,& rotation
--- return new_root, no_change
+-- return new_root, no_change(true/false)
 local updateSubtree = function(root)
 	Stat.update = Stat.update + 1
 	local h = root.height
-	setHeight(root)
-	local balance = getBalance(root)
+	local balance = setHeight(root)
+
 	if balance > 1 then
 		if getBalance(root.right) < 0 then
-			root.right = rotate_node(root.right, 1)
+			root.right = rotateNode(root.right, 'left', 'right')
 		end
-		root = rotate_node(root, -1)
+		root = rotateNode(root, 'right', 'left')
 	elseif balance < -1 then
 		if getBalance(root.left) > 0 then
-			root.left = rotate_node(root.left, -1)
+			root.left = rotateNode(root.left, 'right', 'left')
 		end
-		root = rotate_node(root, 1)
+		root = rotateNode(root, 'left', 'right')
 	end
 
 	return root, root.height == h
@@ -320,7 +315,6 @@ function M._get(node, a, cmp_fn)
 	end
 end
 
--- tree traversal is in order by default (left,root,right)
 function M._iter(node, a, b, cb)
 	if node then
 		if M._iter(node[a], a, b, cb) == false then
