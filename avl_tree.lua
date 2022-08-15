@@ -4,9 +4,7 @@ M.__index = M
 local Stat = {
 	update = 0,
 	rotate = 0,
-	skip = 0,
 }
-M.stat = Stat
 
 local NewNode = function(a)
 	return {
@@ -227,7 +225,6 @@ function M._add(node, a, cmp_fn)
 	end
 
 	if no_change then
-		Stat.skip = Stat.skip + 1
 		return r, node, true
 	else
 		return r, updateSubtree(node)
