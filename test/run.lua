@@ -176,6 +176,14 @@ describe('rb_tree', function()
     r = {}
     ss:query(1.1, 3.9, -1, function(v) r[#r + 1] = v end)
     expect(r).to.equal({ 3, 2.5, 2 })
+
+    r = {}
+    ss:query(nil, 3.9, -1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal({ 3, 2.5, 2, 1, 0 })
+
+    r = {}
+    ss:query(1.5, nil, -1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal({ 4, 3.5, 3, 2.5, 2 })
   end)
 
   it('clear', function()

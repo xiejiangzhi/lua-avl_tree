@@ -120,6 +120,8 @@ function M:iter(dir, cb)
 	M._iter(self.root, a, b, cb)
 end
 
+-- skey: start key, if nil, start from first
+-- ekey: end key, if nil, end to last
 function M:query(skey, ekey, dir, cb)
 	local a, b
 	if dir == 1 or not dir then
@@ -333,19 +335,21 @@ end
 function M._query(node, skey, ekey, a, b, cb, cmp_fn)
 	if node then
 		local v = node.value
-		local cmp_sv = cmp_fn(v, skey)
+		local cmp_sv = skey and cmp_fn(v, skey) or 1
 		if cmp_sv == 0 then
-			M._query(node[a], skey, ekey, a, b, cb, cmp_fn)
 			cb(v)
 			M._query(node[b], skey, ekey, a, b, cb, cmp_fn)
 		elseif cmp_sv < 0 then
 			M._query(node[b], skey, ekey, a, b, cb, cmp_fn)
 		else
-			local cmp_ev = cmp_fn(v, ekey)
-			if cmp_ev <= 0 then
+			local cmp_ev = ekey and cmp_fn(v, ekey) or -1
+			if cmp_ev < 0 then
 				M._query(node[a], skey, ekey, a, b, cb, cmp_fn)
 				cb(v)
 				M._query(node[b], skey, ekey, a, b, cb, cmp_fn)
+			elseif cmp_ev == 0 then
+				M._query(node[a], skey, ekey, a, b, cb, cmp_fn)
+				cb(v)
 			else
 				M._query(node[a], skey, ekey, a, b, cb, cmp_fn)
 			end
