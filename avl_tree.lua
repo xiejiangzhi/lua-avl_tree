@@ -148,8 +148,9 @@ function M.print_stat(tree)
 end
 
 function M.reset_stat()
-	Stat.update = 0
-	Stat.rotate = 0
+	for k, v in pairs(Stat) do
+		Stat[k] = 0
+	end
 end
 
 --------------------------------------------

@@ -33,9 +33,6 @@ for _, size in ipairs(sizes) do
   ta:print_stat()
   Tree.reset_stat()
 
-  print('tree size', ta:size())
-  print('tree height', ta.root.height)
-
   test('get '..name, function()
     for i = 1, times do
       local n = (i - 1) % #data + 1
@@ -69,6 +66,4 @@ for _, size in ipairs(sizes) do
   end)
   ta:print_stat()
   Tree.reset_stat()
-
-  print('total data', ta:size())
 end
