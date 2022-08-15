@@ -27,12 +27,14 @@ describe('rb_tree', function()
     ss:add({ 'a', 123 })
     expect(ss:get({ 'a' })).to.equal({ 'a', 123 })
     expect(ss:empty()).to.equal(false)
+    expect(ss.root.height).to.be(0)
 
     ss:add({ 'b', 321 })
     expect(ss:get({ 'b' })).to.equal({ 'b', 321 })
 
     ss:add({ 'c', 2 })
     ss:add({ 'd', 3 })
+    expect(ss.root.height).to.be(2)
 
     expect(ss:size()).to.equal(4)
 
@@ -40,6 +42,7 @@ describe('rb_tree', function()
     expect(ss:size()).to.equal(3)
     expect(ss:get({ 'a' })).to.equal(nil)
     expect(ss:empty()).to.equal(false)
+    expect(ss.root.height).to.be(1)
 
     ss:add({ 'b', 111 })
     expect(ss:get({ 'b' })).to.equal({ 'b', 111 })
@@ -47,6 +50,7 @@ describe('rb_tree', function()
     expect(ss:del({ 'b' })).to.equal({ 'b', 111 })
     expect(ss:get({ 'b' })).to.equal(nil)
     expect(ss:get({ 'c' })).to.equal({ 'c', 2 })
+    expect(ss.root.height).to.be(1)
 
     expect(ss:peek('left')).to.equal({ 'c', 2 })
     expect(ss:peek('right')).to.equal({ 'd', 3 })
@@ -55,13 +59,14 @@ describe('rb_tree', function()
     expect(ss:del({ 'b' })).to.equal(nil)
   end)
 
-  it('size', function()
+  it('size & height', function()
     local ss = lib.new()
     local ks = { 1, 2, 3, 19, 18, 17, 7, 6, 4, 5, 14, 15, 16, 13 }
     for i, v in ipairs(ks)  do
       ss:add(v)
       expect(ss:size()).to.be(i)
     end
+    expect(ss.root.height).to.be(math.ceil(math.log(#ks, 2)))
 
     local t = #ks
     for i, k in ipairs(ks) do
@@ -122,6 +127,7 @@ describe('rb_tree', function()
     ss:add(0)
     ss:add(3.5)
     expect(ss:size()).to.be(7)
+    expect(ss.root.height).to.be(3)
 
     local r = {}
     ss:iter(1, function(v) r[#r + 1] = v end)
@@ -193,10 +199,12 @@ describe('rb_tree', function()
   it('large data test', function()
     local ss = lib.new()
     local n = 10000
+    lib.reset_stat()
     for i = 1, n do
       expect(ss:add(i)).to.be(i)
     end
     expect(ss:size()).to.be(n)
+    expect(ss.root.height).to.be(13)
     for i = 1, n do
       expect(ss:del(i)).to.be(i)
       expect(ss:size()).to.be(n - i)
