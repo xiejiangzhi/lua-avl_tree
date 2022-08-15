@@ -6,6 +6,34 @@ local Stat = {
 	rotate = 0,
 }
 
+local QueryKeyRule = {
+	lr = {
+		cmp_0 = {
+			b_sk = true, a_sk = nil,
+		},
+		cmp_1_1 = {
+			b_sk = true, b_ek = nil,
+			a_sk = nil, a_ek = true,
+		},
+		cmp_10 = {
+			b_ek = nil, a_ek = true
+		},
+	},
+
+	rl = {
+		cmp_0 = {
+			b_sk = nil, a_sk = true,
+		},
+		cmp_1_1 = {
+			b_sk = nil, b_ek = true,
+			a_sk = true, a_ek = nil,
+		},
+		cmp_10 = {
+			b_ek = true, a_ek = nil
+		}
+	}
+}
+
 local NewNode = function(a)
 	return {
     value   = a,
@@ -123,16 +151,18 @@ end
 -- skey: start key, if nil, start from first
 -- ekey: end key, if nil, end to last
 function M:query(skey, ekey, dir, cb)
-	local before_side, after_side
+	local before_side, after_side, q_rule
 	if dir == 1 or not dir then
 		before_side, after_side = 'left', 'right'
+		q_rule = QueryKeyRule.lr
 	elseif dir == -1 then
 		before_side, after_side = 'right', 'left'
+		q_rule = QueryKeyRule.rl
 	else
 		error("invalid iter dir "..tostring(dir))
 	end
 
-	M._query(self.root, skey, ekey, before_side, after_side, cb, self.cmp_fn)
+	M._query(self.root, skey, ekey, before_side, after_side, cb, self.cmp_fn, q_rule)
 end
 
 function M.print_stat(tree)
@@ -317,44 +347,61 @@ function M._get(node, a, cmp_fn)
 	end
 end
 
-function M._iter(node, a, b, cb)
+function M._iter(node, before_side, after_side, cb)
 	if node then
-		if M._iter(node[a], a, b, cb) == false then
+		if M._iter(node[before_side], before_side, after_side, cb) == false then
 			return false
 		end
 		if cb(node.value) == false then
 			return false
 		end
-		if M._iter(node[b], a, b, cb) == false then
+		if M._iter(node[after_side], before_side, after_side, cb) == false then
 			return false
 		end
 	end
 	return true
 end
 
-function M._query(node, skey, ekey, before_side, after_side, cb, cmp_fn)
-	if node then
-		local v = node.value
-		local cmp_sv = skey and cmp_fn(v, skey) or 1
-		if cmp_sv == 0 then
-			M._query(node[before_side], skey, ekey, before_side, after_side, cb, cmp_fn)
+
+
+function M._query(node, skey, ekey, before_side, after_side, cb, cmp_fn, q_rule)
+	if not node then
+		return
+	end
+
+	if skey == nil and ekey == nil then
+		M._iter(node, before_side, after_side, cb)
+		return
+	end
+
+	local v = node.value
+	local cmp_sv = skey and cmp_fn(v, skey) or 1
+	if cmp_sv == 0 then
+		local rule = q_rule.cmp_0
+		M._query(node[before_side], rule.b_sk and skey, ekey, before_side, after_side, cb, cmp_fn, q_rule)
+		cb(v)
+		M._query(node[after_side], rule.a_sk and skey, ekey, before_side, after_side, cb, cmp_fn, q_rule)
+	elseif cmp_sv < 0 then
+		M._query(node.right, skey, ekey, before_side, after_side, cb, cmp_fn, q_rule)
+	else
+		local cmp_ev = ekey and cmp_fn(v, ekey) or -1
+		if cmp_ev < 0 then
+			local rule = q_rule.cmp_1_1
+			M._query(
+				node[before_side], rule.b_sk and skey, rule.b_ek and ekey, before_side, after_side, cb, cmp_fn, q_rule
+			)
 			cb(v)
-			M._query(node[after_side], skey, ekey, before_side, after_side, cb, cmp_fn)
-		elseif cmp_sv < 0 then
-			M._query(node.right, skey, ekey, before_side, after_side, cb, cmp_fn)
+			M._query(
+				node[after_side], rule.a_sk and skey, rule.a_ek and ekey, before_side, after_side, cb, cmp_fn, q_rule
+			)
+		elseif cmp_ev == 0 then
+			-- ignore left ekey
+			local rule = q_rule.cmp_10
+			M._query(node[before_side], skey, rule.b_ek and ekey, before_side, after_side, cb, cmp_fn, q_rule)
+			cb(v)
+			M._query(node[after_side], skey, rule.a_ek and ekey, before_side, after_side, cb, cmp_fn, q_rule)
 		else
-			local cmp_ev = ekey and cmp_fn(v, ekey) or -1
-			if cmp_ev < 0 then
-				M._query(node[before_side], skey, ekey, before_side, after_side, cb, cmp_fn)
-				cb(v)
-				M._query(node[after_side], skey, ekey, before_side, after_side, cb, cmp_fn)
-			elseif cmp_ev == 0 then
-				M._query(node[before_side], skey, ekey, before_side, after_side, cb, cmp_fn)
-				cb(v)
-				M._query(node[after_side], skey, ekey, before_side, after_side, cb, cmp_fn)
-			else
-				M._query(node.left, skey, ekey, before_side, after_side, cb, cmp_fn)
-			end
+			M._query(node.left, skey, ekey, before_side, after_side, cb, cmp_fn, q_rule)
 		end
 	end
 end

@@ -204,22 +204,56 @@ describe('rb_tree', function()
     for i = 1, 30 do
       ss:add(i)
     end
+    local make_range = function(s, e)
+      local t = {}
+      local dir = (s < e) and 1 or -1
+      for i = s, e, dir or 1 do
+        t[#t + 1] = i
+      end
+      return t
+    end
 
     local r = {}
     ss:query(5, 15, 1, function(v) r[#r + 1] = v end)
-    expect(r).to.equal({ 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 })
+    expect(r).to.equal(make_range(5, 15))
 
     r = {}
     ss:query(5, 15, -1, function(v) r[#r + 1] = v end)
-    expect(r).to.equal({ 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5 })
+    expect(r).to.equal(make_range(15, 5))
 
     r = {}
     ss:query(10, 25, 1, function(v) r[#r + 1] = v end)
-    expect(r).to.equal({ 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 })
+    expect(r).to.equal(make_range(10, 25))
 
     r = {}
     ss:query(10, 25, -1, function(v) r[#r + 1] = v end)
-    expect(r).to.equal({  25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10 })
+    expect(r).to.equal(make_range(25, 10))
+
+    r = {}
+    ss:query(10, nil, -1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal(make_range(30, 10))
+
+    r = {}
+    ss:query(10, 100, -1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal(make_range(30, 10))
+
+    r = {}
+    ss:query(nil, 15, 1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal(make_range(1, 15))
+
+    r = {}
+    ss:query(nil, 99, 1, function(v) r[#r + 1] = v end)
+    expect(r).to.equal(make_range(1, 30))
+
+    for i = 1, 30 do
+      r = {}
+      ss:query(1, i, 1, function(v) r[#r + 1] = v end)
+      expect(r).to.equal(make_range(1, i))
+
+      r = {}
+      ss:query(1, i, -1, function(v) r[#r + 1] = v end)
+      expect(r).to.equal(make_range(i, 1))
+    end
   end)
 
 
